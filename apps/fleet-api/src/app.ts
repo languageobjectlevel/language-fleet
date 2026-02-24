@@ -9,7 +9,7 @@ import type {
 } from "@language-fleet/contracts";
 import { registerAgent, registerHeartbeat } from "@language-fleet/registry";
 import { assignWorkload, selectAgentForWorkload } from "@language-fleet/allocator";
-import { renewLease } from "@language-fleet/lease";
+import { isLeaseExpired, renewLease } from "@language-fleet/lease";
 import { evaluateScaling } from "@language-fleet/scaling";
 import { checkConnectorStatus } from "@language-fleet/connectors";
 import { assertAllowedRegion, assertNoReplayKeyReuse } from "@language-fleet/security";
@@ -103,6 +103,10 @@ export function createFleetApp() {
 
     if (!agents.has(body.toAgentId)) {
       return reply.code(404).send({ error: "Target agent not found" });
+    }
+
+    if (isLeaseExpired(lease)) {
+      return reply.code(409).send({ error: "Lease expired; assignment must be renewed first" });
     }
 
     const renewed = renewLease({ ...lease, agentId: body.toAgentId }, body.ttlSeconds ?? 60);
