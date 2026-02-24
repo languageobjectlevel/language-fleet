@@ -11,7 +11,7 @@ import { registerAgent, registerHeartbeat } from "@language-fleet/registry";
 import { assignWorkload, selectAgentForWorkload } from "@language-fleet/allocator";
 import { isLeaseExpired, renewLease } from "@language-fleet/lease";
 import { evaluateByUtilization, evaluateScaling } from "@language-fleet/scaling";
-import { checkConnectorStatus } from "@language-fleet/connectors";
+import { buildConnectorPing, checkConnectorStatus } from "@language-fleet/connectors";
 import { assertAllowedRegion, assertNoReplayKeyReuse } from "@language-fleet/security";
 import { gauge, increment, snapshot } from "@language-fleet/observability";
 import { fleetEvents, publishFleetEvent, readFleetOutbox } from "@language-fleet/events";
@@ -177,6 +177,12 @@ export function createFleetApp() {
   });
 
   app.get("/v1/connectors/status", async () => checkConnectorStatus());
+  app.post("/v1/connectors/ping", async (request, reply) => {
+    const body = request.body as { target: "operator" | "commerce"; correlationId: string };
+    const ping = buildConnectorPing(body.target, body.correlationId);
+    increment("fleet.connectors.pinged.v1");
+    return reply.code(202).send(ping);
+  });
   app.get("/v1/events/outbox", async () => ({ count: readFleetOutbox().length, items: readFleetOutbox() }));
   app.get("/v1/metrics", async () => snapshot());
   app.get("/v1/health/liveness", async () => ({ status: "ok" }));
