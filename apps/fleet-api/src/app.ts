@@ -8,7 +8,7 @@ import type {
   WorkloadLease
 } from "@language-fleet/contracts";
 import { registerAgent, registerHeartbeat } from "@language-fleet/registry";
-import { assignWorkload } from "@language-fleet/allocator";
+import { assignWorkload, selectAgentForWorkload } from "@language-fleet/allocator";
 import { renewLease } from "@language-fleet/lease";
 import { evaluateScaling } from "@language-fleet/scaling";
 import { checkConnectorStatus } from "@language-fleet/connectors";
@@ -67,12 +67,21 @@ export function createFleetApp() {
   });
 
   app.post("/v1/workloads/assign", async (request, reply) => {
-    const body = request.body as { workloadId: string; agentId: string; ttlSeconds?: number };
-    if (!agents.has(body.agentId)) {
-      return reply.code(404).send({ error: "Agent not registered" });
+    const body = request.body as { workloadId: string; agentId?: string; ttlSeconds?: number };
+    const resolvedAgentId =
+      body.agentId ??
+      selectAgentForWorkload(
+        Array.from(heartbeats.values()).map((heartbeat) => ({
+          ...heartbeat,
+          healthy: heartbeat.healthy
+        }))
+      );
+
+    if (!resolvedAgentId || !agents.has(resolvedAgentId)) {
+      return reply.code(404).send({ error: "Agent not available" });
     }
 
-    const lease = assignWorkload(body.workloadId, body.agentId, body.ttlSeconds ?? 60);
+    const lease = assignWorkload(body.workloadId, resolvedAgentId, body.ttlSeconds ?? 60);
     leases.set(lease.leaseId, lease);
     increment("fleet.workload.assigned.v1");
     publishFleetEvent({
