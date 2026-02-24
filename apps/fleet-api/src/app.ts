@@ -13,7 +13,7 @@ import { isLeaseExpired, renewLease } from "@language-fleet/lease";
 import { evaluateByUtilization, evaluateScaling } from "@language-fleet/scaling";
 import { buildConnectorPing, checkConnectorStatus } from "@language-fleet/connectors";
 import { assertAllowedRegion, assertNoReplayKeyReuse } from "@language-fleet/security";
-import { gauge, increment, snapshot } from "@language-fleet/observability";
+import { gauge, increment, log, readLogs, snapshot } from "@language-fleet/observability";
 import { fleetEvents, publishFleetEvent, readDeadLetter, readFleetOutbox } from "@language-fleet/events";
 
 const agents = new Map<string, AgentRegistration>();
@@ -23,6 +23,16 @@ const replayKeys = new Set<string>();
 
 export function createFleetApp() {
   const app = Fastify({ logger: false });
+
+  app.addHook("onRequest", (request, _reply, done) => {
+    const requestId = request.headers["x-request-id"]?.toString() ?? `req_${Date.now()}`;
+    log({
+      level: "info",
+      event: "http.request.received",
+      metadata: { method: request.method, url: request.url, requestId }
+    });
+    done();
+  });
 
   app.post("/v1/agents/register", async (request, reply) => {
     const body = request.body as AgentRegistration;
@@ -186,6 +196,7 @@ export function createFleetApp() {
   app.get("/v1/events/outbox", async () => ({ count: readFleetOutbox().length, items: readFleetOutbox() }));
   app.get("/v1/events/dead-letter", async () => ({ count: readDeadLetter().length, items: readDeadLetter() }));
   app.get("/v1/metrics", async () => snapshot());
+  app.get("/v1/observability/logs", async () => ({ count: readLogs().length, items: readLogs() }));
   app.get("/v1/health/liveness", async () => ({ status: "ok" }));
 
   return app;
