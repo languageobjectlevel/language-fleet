@@ -23,7 +23,7 @@
                     "sbom":  "node scripts/generate-sbom.mjs",
                     "license:check":  "node scripts/license-check.mjs",
                     "docs:link-check":  "node scripts/docs-link-check.mjs",
-                    "test:load":  "node tests/perf/load-test.mjs"
+                    "test:load":  "vitest run tests/perf/load-test.test.ts"
                 },
     "dependencies":  {
                          "fastify":  "^4.28.1"
