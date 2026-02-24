@@ -14,7 +14,7 @@ import { evaluateByUtilization, evaluateScaling } from "@language-fleet/scaling"
 import { buildConnectorPing, checkConnectorStatus } from "@language-fleet/connectors";
 import { assertAllowedRegion, assertNoReplayKeyReuse } from "@language-fleet/security";
 import { gauge, increment, snapshot } from "@language-fleet/observability";
-import { fleetEvents, publishFleetEvent, readFleetOutbox } from "@language-fleet/events";
+import { fleetEvents, publishFleetEvent, readDeadLetter, readFleetOutbox } from "@language-fleet/events";
 
 const agents = new Map<string, AgentRegistration>();
 const heartbeats = new Map<string, HeartbeatSnapshot>();
@@ -184,6 +184,7 @@ export function createFleetApp() {
     return reply.code(202).send(ping);
   });
   app.get("/v1/events/outbox", async () => ({ count: readFleetOutbox().length, items: readFleetOutbox() }));
+  app.get("/v1/events/dead-letter", async () => ({ count: readDeadLetter().length, items: readDeadLetter() }));
   app.get("/v1/metrics", async () => snapshot());
   app.get("/v1/health/liveness", async () => ({ status: "ok" }));
 
