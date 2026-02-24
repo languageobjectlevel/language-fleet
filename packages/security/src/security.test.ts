@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { assertAllowedRegion, assertNoReplayKeyReuse } from "./index.js";
+import { assertAllowedRegion, assertNoReplayKeyReuse, requireServiceToken } from "./index.js";
 
 describe("security", () => {
   it("guards allowed region and replay keys", () => {
@@ -8,5 +8,10 @@ describe("security", () => {
     assertNoReplayKeyReuse(keys, "k1");
     keys.add("k1");
     expect(() => assertNoReplayKeyReuse(keys, "k1")).toThrow();
+  });
+
+  it("validates service token", () => {
+    expect(() => requireServiceToken(undefined, "expected")).toThrow();
+    expect(() => requireServiceToken("expected", "expected")).not.toThrow();
   });
 });
