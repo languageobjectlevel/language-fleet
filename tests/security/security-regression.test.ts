@@ -39,6 +39,6 @@ describe("fleet security regression", () => {
       payload: { agentId: "agent-sec-2", healthy: true, cpuLoad: 150, memoryLoad: 10, timestamp: new Date().toISOString() }
     });
 
-    expect(heartbeat.statusCode).toBe(500);
+    expect(heartbeat.statusCode).toBe(400);
   });
 });
