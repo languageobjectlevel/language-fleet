@@ -93,7 +93,12 @@ export function createFleetApp() {
       return reply.code(404).send({ error: "Agent not registered" });
     }
 
-    const heartbeat = registerHeartbeat({ ...body, timestamp: new Date().toISOString() });
+    let heartbeat: HeartbeatSnapshot;
+    try {
+      heartbeat = registerHeartbeat({ ...body, timestamp: new Date().toISOString() });
+    } catch (error) {
+      return reply.code(400).send({ error: (error as Error).message });
+    }
     heartbeats.set(body.agentId, heartbeat);
     increment("fleet.agent.heartbeat.v1");
     publishFleetEvent({
