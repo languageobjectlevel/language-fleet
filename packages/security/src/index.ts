@@ -11,3 +11,9 @@ export function assertNoReplayKeyReuse(previous: Set<string>, key: string): void
     throw new Error("Replay key reuse detected");
   }
 }
+
+export function requireServiceToken(token: string | undefined, expectedToken: string): void {
+  if (!token || token !== expectedToken) {
+    throw new Error("Invalid service token");
+  }
+}

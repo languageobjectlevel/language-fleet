@@ -12,7 +12,7 @@ import { assignWorkload, selectAgentForWorkload } from "@language-fleet/allocato
 import { isLeaseExpired, renewLease } from "@language-fleet/lease";
 import { evaluateByUtilization, evaluateScaling } from "@language-fleet/scaling";
 import { buildConnectorPing, checkConnectorStatus } from "@language-fleet/connectors";
-import { assertAllowedRegion, assertNoReplayKeyReuse } from "@language-fleet/security";
+import { assertAllowedRegion, assertNoReplayKeyReuse, requireServiceToken } from "@language-fleet/security";
 import { gauge, increment, log, readLogs, snapshot } from "@language-fleet/observability";
 import { fleetEvents, publishFleetEvent, readDeadLetter, readFleetOutbox } from "@language-fleet/events";
 
@@ -23,6 +23,28 @@ const replayKeys = new Set<string>();
 
 export function createFleetApp() {
   const app = Fastify({ logger: false });
+  const sharedToken = process.env.FLEET_SERVICE_TOKEN ?? "fleet-local-token";
+
+  function guardWriteRequest(
+    request: { headers: Record<string, unknown> },
+    replayNamespace?: string
+  ): { ok: true } | { ok: false; statusCode: number; payload: { error: string } } {
+    try {
+      requireServiceToken(request.headers["x-service-token"]?.toString(), sharedToken);
+      if (replayNamespace) {
+        const replayKey = request.headers["idempotency-key"]?.toString();
+        if (!replayKey) {
+          return { ok: false, statusCode: 400, payload: { error: "idempotency-key header is required" } };
+        }
+        assertNoReplayKeyReuse(replayKeys, `${replayNamespace}:${replayKey}`);
+        replayKeys.add(`${replayNamespace}:${replayKey}`);
+      }
+
+      return { ok: true };
+    } catch (error) {
+      return { ok: false, statusCode: 401, payload: { error: (error as Error).message } };
+    }
+  }
 
   app.addHook("onRequest", (request, _reply, done) => {
     const requestId = request.headers["x-request-id"]?.toString() ?? `req_${Date.now()}`;
@@ -35,11 +57,14 @@ export function createFleetApp() {
   });
 
   app.post("/v1/agents/register", async (request, reply) => {
+    const guardResult = guardWriteRequest(request as { headers: Record<string, unknown> }, "register");
+    if (!guardResult.ok) {
+      return reply.code(guardResult.statusCode).send(guardResult.payload);
+    }
+
     const body = request.body as AgentRegistration;
     try {
       assertAllowedRegion(body.region);
-      assertNoReplayKeyReuse(replayKeys, `register:${body.agentId}`);
-      replayKeys.add(`register:${body.agentId}`);
     } catch (error) {
       return reply.code(400).send({ error: (error as Error).message });
     }
@@ -58,6 +83,11 @@ export function createFleetApp() {
   });
 
   app.post("/v1/agents/heartbeat", async (request, reply) => {
+    const guardResult = guardWriteRequest(request as { headers: Record<string, unknown> }, "heartbeat");
+    if (!guardResult.ok) {
+      return reply.code(guardResult.statusCode).send(guardResult.payload);
+    }
+
     const body = request.body as HeartbeatSnapshot;
     if (!agents.has(body.agentId)) {
       return reply.code(404).send({ error: "Agent not registered" });
@@ -77,6 +107,11 @@ export function createFleetApp() {
   });
 
   app.post("/v1/workloads/assign", async (request, reply) => {
+    const guardResult = guardWriteRequest(request as { headers: Record<string, unknown> }, "assign");
+    if (!guardResult.ok) {
+      return reply.code(guardResult.statusCode).send(guardResult.payload);
+    }
+
     const body = request.body as { workloadId: string; agentId?: string; ttlSeconds?: number };
     const resolvedAgentId =
       body.agentId ??
@@ -105,6 +140,11 @@ export function createFleetApp() {
   });
 
   app.post("/v1/workloads/rebalance", async (request, reply) => {
+    const guardResult = guardWriteRequest(request as { headers: Record<string, unknown> }, "rebalance");
+    if (!guardResult.ok) {
+      return reply.code(guardResult.statusCode).send(guardResult.payload);
+    }
+
     const body = request.body as { leaseId: string; toAgentId: string; ttlSeconds?: number };
     const lease = leases.get(body.leaseId);
     if (!lease) {
@@ -140,6 +180,11 @@ export function createFleetApp() {
   });
 
   app.post("/v1/scaling/policies", async (request, reply) => {
+    const guardResult = guardWriteRequest(request as { headers: Record<string, unknown> }, "scaling");
+    if (!guardResult.ok) {
+      return reply.code(guardResult.statusCode).send(guardResult.payload);
+    }
+
     const body = request.body as {
       policyName: string;
       desiredAgents?: number;
@@ -188,6 +233,11 @@ export function createFleetApp() {
 
   app.get("/v1/connectors/status", async () => checkConnectorStatus());
   app.post("/v1/connectors/ping", async (request, reply) => {
+    const guardResult = guardWriteRequest(request as { headers: Record<string, unknown> }, "connector-ping");
+    if (!guardResult.ok) {
+      return reply.code(guardResult.statusCode).send(guardResult.payload);
+    }
+
     const body = request.body as { target: "operator" | "commerce"; correlationId: string };
     const ping = buildConnectorPing(body.target, body.correlationId);
     increment("fleet.connectors.pinged.v1");
