@@ -1,0 +1,41 @@
+openapi: 3.1.0
+info:
+  title: Language Fleet API
+  version: 1.0.0
+paths:
+  /v1/agents/register:
+    post:
+      summary: Register fleet agent
+      responses:
+        "201":
+          description: Agent registered
+  /v1/workloads/assign:
+    post:
+      summary: Assign workload lease
+      responses:
+        "201":
+          description: Workload assigned
+  /v1/workloads/rebalance:
+    post:
+      summary: Rebalance workload
+      responses:
+        "200":
+          description: Rebalanced
+  /v1/scaling/policies:
+    post:
+      summary: Evaluate scaling policy
+      responses:
+        "201":
+          description: Scaling decision
+  /v1/fleet/status:
+    get:
+      summary: Fleet health report
+      responses:
+        "200":
+          description: Fleet status
+  /v1/agents/{agentId}/health:
+    get:
+      summary: Agent heartbeat
+      responses:
+        "200":
+          description: Agent health
