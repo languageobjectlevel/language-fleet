@@ -1,0 +1,35 @@
+asyncapi: 3.0.0
+info:
+  title: Language Fleet Events
+  version: 1.0.0
+channels:
+  fleet.agent.registered.v1:
+    address: fleet.agent.registered.v1
+    messages:
+      registered:
+        payload:
+          type: object
+  fleet.agent.heartbeat.v1:
+    address: fleet.agent.heartbeat.v1
+    messages:
+      heartbeat:
+        payload:
+          type: object
+  fleet.workload.assigned.v1:
+    address: fleet.workload.assigned.v1
+    messages:
+      assigned:
+        payload:
+          type: object
+  fleet.workload.rebalanced.v1:
+    address: fleet.workload.rebalanced.v1
+    messages:
+      rebalanced:
+        payload:
+          type: object
+  fleet.scaling.triggered.v1:
+    address: fleet.scaling.triggered.v1
+    messages:
+      triggered:
+        payload:
+          type: object
