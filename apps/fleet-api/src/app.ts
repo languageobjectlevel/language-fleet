@@ -10,7 +10,7 @@ import type {
 import { registerAgent, registerHeartbeat } from "@language-fleet/registry";
 import { assignWorkload, selectAgentForWorkload } from "@language-fleet/allocator";
 import { isLeaseExpired, renewLease } from "@language-fleet/lease";
-import { evaluateScaling } from "@language-fleet/scaling";
+import { evaluateByUtilization, evaluateScaling } from "@language-fleet/scaling";
 import { checkConnectorStatus } from "@language-fleet/connectors";
 import { assertAllowedRegion, assertNoReplayKeyReuse } from "@language-fleet/security";
 import { gauge, increment, snapshot } from "@language-fleet/observability";
@@ -130,9 +130,18 @@ export function createFleetApp() {
   });
 
   app.post("/v1/scaling/policies", async (request, reply) => {
-    const body = request.body as { policyName: string; desiredAgents: number; reason: string };
+    const body = request.body as {
+      policyName: string;
+      desiredAgents?: number;
+      reason?: string;
+      currentAgents?: number;
+      averageCpuLoad?: number;
+    };
 
-    const decision: ScalingDecision = evaluateScaling(body.policyName, body.desiredAgents, body.reason);
+    const decision: ScalingDecision =
+      typeof body.currentAgents === "number" && typeof body.averageCpuLoad === "number"
+        ? evaluateByUtilization(body.policyName, body.currentAgents, body.averageCpuLoad)
+        : evaluateScaling(body.policyName, body.desiredAgents ?? 1, body.reason ?? "Manual policy evaluation");
     increment("fleet.scaling.triggered.v1");
     publishFleetEvent({
       id: `evt_${decision.decisionId}`,
