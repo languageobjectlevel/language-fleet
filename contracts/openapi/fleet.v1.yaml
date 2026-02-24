@@ -9,6 +9,12 @@ paths:
       responses:
         "201":
           description: Agent registered
+  /v1/agents/heartbeat:
+    post:
+      summary: Record fleet agent heartbeat
+      responses:
+        "202":
+          description: Heartbeat accepted
   /v1/workloads/assign:
     post:
       summary: Assign workload lease

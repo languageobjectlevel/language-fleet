@@ -7,7 +7,7 @@ import type {
   ScalingDecision,
   WorkloadLease
 } from "@language-fleet/contracts";
-import { registerAgent } from "@language-fleet/registry";
+import { registerAgent, registerHeartbeat } from "@language-fleet/registry";
 import { assignWorkload } from "@language-fleet/allocator";
 import { renewLease } from "@language-fleet/lease";
 import { evaluateScaling } from "@language-fleet/scaling";
@@ -45,6 +45,25 @@ export function createFleetApp() {
     });
 
     return reply.code(201).send(registered);
+  });
+
+  app.post("/v1/agents/heartbeat", async (request, reply) => {
+    const body = request.body as HeartbeatSnapshot;
+    if (!agents.has(body.agentId)) {
+      return reply.code(404).send({ error: "Agent not registered" });
+    }
+
+    const heartbeat = registerHeartbeat({ ...body, timestamp: new Date().toISOString() });
+    heartbeats.set(body.agentId, heartbeat);
+    increment("fleet.agent.heartbeat.v1");
+    publishFleetEvent({
+      id: `evt_hb_${heartbeat.agentId}`,
+      name: fleetEvents.agentHeartbeat,
+      emittedAt: new Date().toISOString(),
+      payload: heartbeat
+    });
+
+    return reply.code(202).send(heartbeat);
   });
 
   app.post("/v1/workloads/assign", async (request, reply) => {
