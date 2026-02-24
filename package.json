@@ -1,40 +1,41 @@
 {
-  "name": "language-fleet",
-  "version": "0.1.0",
-  "private": true,
-  "description": "Orchestration and control plane for Language Object Level",
-  "license": "Apache-2.0",
-  "engines": {
-    "node": ">=22.0.0"
-  },
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ],
-  "scripts": {
-    "clean": "node scripts/clean.mjs",
-    "lint": "eslint . --max-warnings=0",
-    "typecheck": "tsc -p tsconfig.typecheck.json --noEmit --pretty false",
-    "test": "vitest run --config vitest.coverage.config.ts --coverage",
-    "test:unit": "vitest run --config vitest.unit.config.ts",
-    "test:integration": "vitest run --config vitest.integration.config.ts",
-    "contract:validate": "node scripts/validate-contracts.mjs",
-    "security:scan": "node scripts/security-scan.mjs",
-    "sbom": "node scripts/generate-sbom.mjs",
-    "license:check": "node scripts/license-check.mjs",
-    "docs:link-check": "node scripts/docs-link-check.mjs"
-  },
-  "dependencies": {
-    "fastify": "^4.28.1"
-  },
-  "devDependencies": {
-    "@commitlint/config-conventional": "^19.2.2",
-    "@eslint/js": "^9.9.1",
-    "@types/node": "^22.5.4",
-    "@vitest/coverage-v8": "^2.1.5",
-    "eslint": "^9.9.1",
-    "typescript": "^5.5.4",
-    "typescript-eslint": "^8.6.0",
-    "vitest": "^2.1.5"
-  }
+    "name":  "language-fleet",
+    "version":  "0.1.0",
+    "private":  true,
+    "description":  "Orchestration and control plane for Language Object Level",
+    "license":  "Apache-2.0",
+    "engines":  {
+                    "node":  "\u003e=22.0.0"
+                },
+    "workspaces":  [
+                       "apps/*",
+                       "packages/*"
+                   ],
+    "scripts":  {
+                    "clean":  "node scripts/clean.mjs",
+                    "lint":  "eslint . --max-warnings=0",
+                    "typecheck":  "tsc -p tsconfig.typecheck.json --noEmit --pretty false",
+                    "test":  "vitest run --config vitest.coverage.config.ts --coverage",
+                    "test:unit":  "vitest run --config vitest.unit.config.ts",
+                    "test:integration":  "vitest run --config vitest.integration.config.ts",
+                    "contract:validate":  "node scripts/validate-contracts.mjs",
+                    "security:scan":  "node scripts/security-scan.mjs",
+                    "sbom":  "node scripts/generate-sbom.mjs",
+                    "license:check":  "node scripts/license-check.mjs",
+                    "docs:link-check":  "node scripts/docs-link-check.mjs",
+                    "test:load":  "vitest run tests/perf/load-test.test.ts"
+                },
+    "dependencies":  {
+                         "fastify":  "^4.28.1"
+                     },
+    "devDependencies":  {
+                            "@commitlint/config-conventional":  "^19.2.2",
+                            "@eslint/js":  "^9.9.1",
+                            "@types/node":  "^22.5.4",
+                            "@vitest/coverage-v8":  "^2.1.5",
+                            "eslint":  "^9.9.1",
+                            "typescript":  "^5.5.4",
+                            "typescript-eslint":  "^8.6.0",
+                            "vitest":  "^2.1.5"
+                        }
 }
